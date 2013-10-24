@@ -25,7 +25,7 @@ public class Game extends Applet implements Runnable, KeyListener {
 	ArrayList<Asteroid> asteroids;
 
 	// GRAPHICS VARIABLES
-	private final int Screen[] = { 750, 750 };
+	private static final int Screen[] = { 750, 750 };
 
 	/** Allows task to be performed by PC */
 	Thread thread;
@@ -106,23 +106,28 @@ public class Game extends Applet implements Runnable, KeyListener {
 		// Code draws to the back buffer to prevent flashing
 		Gfx.setColor(Color.black);
 		Gfx.fillRect(0, 0, Screen[0], Screen[1]);
+		if (lives > 0) {
+			// Draw Ship
+			ship.draw(Gfx);
 
-		// Draw Ship
-		ship.draw(Gfx);
+			// Draw all bullets on the screen
+			for (int i = 0; i < bullets.size(); ++i) {
+				bullets.get(i).draw(Gfx);
+			}
+			// Draw asteroids
+			for (int i = 0; i < asteroids.size(); ++i) {
+				asteroids.get(i).draw(Gfx);
+			}
 
-		// Draw all bullets on the screen
-		for (int i = 0; i < bullets.size(); ++i) {
-			bullets.get(i).draw(Gfx);
+			// Display the level number in top left corner
+			Gfx.setColor(Color.cyan);
+			Gfx.drawString("Level " + level, 20, 20);
 		}
-		// Draw asteroids
-		for (int i = 0; i < asteroids.size(); ++i) {
-			asteroids.get(i).draw(Gfx);
+		if(lives <= 0)	{
+			// Display GAME OVER in center of screen
+						Gfx.setColor(Color.cyan);
+						Gfx.drawString("GAME OVER", (int)center[X],(int)center[Y]);
 		}
-		
-		// Display the level number in top left corner
-		Gfx.setColor(Color.cyan); 
-		Gfx.drawString("Level " + level, 20, 20);
-
 		// What is drawn on screen
 		a_Gfx.drawImage(image, 0, 0, this);
 	}
@@ -141,10 +146,10 @@ public class Game extends Applet implements Runnable, KeyListener {
 		while (true) {
 			// set start time
 			startTime = System.currentTimeMillis();
-			
-			if(asteroids.size() <=0)
+
+			if (asteroids.size() <= 0)
 				nextLevel();
-			
+
 			if (gameRunning) {
 				ship.move(Screen);
 				for (int i = bullets.size() - 1; i >= 0; --i) {
@@ -226,6 +231,7 @@ public class Game extends Applet implements Runnable, KeyListener {
 		for (int i = 0; i < asteroids.size(); ++i) {
 			asteroids.get(i).move(Screen);
 			if (asteroids.get(i).collideShip(ship)) {
+				--lives;
 				--level;
 				asteroids.clear();
 				return;
@@ -233,14 +239,14 @@ public class Game extends Applet implements Runnable, KeyListener {
 			for (int j = 0; j < bullets.size(); ++j) {
 				if (asteroids.get(i).collideBullet(bullets.get(j))) {
 					bullets.remove(j);
-					if (asteroids.get(i).getHealth() > 1) {
+					if (asteroids.get(i).getHealth() >= 1) {
 						for (int k = 0; k < asteroids.get(i).asteroidSplit; ++k) {
 							asteroids.add(asteroids.get(i).splitAsteroid());
 						}
-						asteroids.remove(i);
-						j = bullets.size();
-						--i;
 					}
+					asteroids.remove(i);
+					j = bullets.size();
+					--i;
 				}
 			}
 		}

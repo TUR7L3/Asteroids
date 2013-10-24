@@ -19,9 +19,9 @@ public class Asteroid {
 	/** Asteroid Velocity */
 	double vel[];
 	/** Minimum Velocity */
-	final double minVel = 3;
+	final double minVel = 2;
 	/** Maximum Velocity */
-	final double maxVel = 8;
+	final double maxVel = 5;
 
 	/** Asteroid Radius */
 	double radius;
@@ -32,25 +32,30 @@ public class Asteroid {
 		this.pos[X] = pos[X];
 		this.pos[Y] = pos[Y];
 
-		health = 3;
+		vel = new double[2];
+		
+		health = 2;
 		radius = 20;
+		
 		/** Random Velocity */
 		double randVel = minVel + Math.random() * (maxVel - minVel);
+		/** Random Direction */
 		double randDir = 2 * Math.PI * Math.random();
+		vel[X] = randVel*Math.cos(randDir);
+		vel[Y] = randVel*Math.cos(randDir);
 	}
 
 	/** Constructor used in split asteroid */
-	public Asteroid(double pos[], int health) {
+	public Asteroid(double pos[], int health, double radius) {
 		this.pos = new double[2];
 		this.pos[X] = pos[X];
 		this.pos[Y] = pos[Y];
 
 		vel = new double[2];
-		
-		
+				
 		this.health = health;
 		
-		radius = radius/Math.sqrt(asteroidSplit);
+		this.radius = (radius/Math.sqrt(asteroidSplit));
 
 		/** Random Velocity */
 		double randVel = minVel + Math.random() * (maxVel - minVel);
@@ -116,7 +121,7 @@ public class Asteroid {
 	
 	/** This creates 2 new asteroids. Used after collision with a bullet */
 	public Asteroid splitAsteroid()	{
-		return new Asteroid(pos, (health - 1));
+		return new Asteroid(pos, (health - 1), this.radius);
 	}
 	
 	
