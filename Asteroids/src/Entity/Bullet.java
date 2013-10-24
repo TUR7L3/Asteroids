@@ -20,7 +20,10 @@ public class Bullet {
 	int lifeSpan;
 
 	public Bullet(double pos[], double rot) {
-		this.pos = pos;
+		this.pos = new double[2];
+		this.pos[X] = pos[X];
+		this.pos[Y] = pos[Y];
+		
 		// Makes the bullet leave at the same angle the ship is flying
 		vel = new double[2];
 		vel[X] = bulletVel * Math.cos(rot);
@@ -55,7 +58,7 @@ public class Bullet {
 	public void draw(Graphics Gfx) {
 		Gfx.setColor(Color.red);
 
-		Gfx.fillOval((int) (pos[X] - 0.5), (int) (pos[Y] - 0.5), 2, 2);
+		Gfx.fillOval((int) (pos[X] - 0.5), (int) (pos[Y] - 0.5), 6, 6);
 	}
 	
 	public double[] getPos() {

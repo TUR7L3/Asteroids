@@ -4,6 +4,7 @@ import java.applet.*;
 import java.awt.*;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
+import java.util.ArrayList;
 
 import Entity.Asteroid;
 import Entity.Bullet;
@@ -11,23 +12,20 @@ import Entity.Ship;
 
 /** Main class that contains the game */
 public class Game extends Applet implements Runnable, KeyListener {
-
+	// ENTITIES
 	/** Ship Entity */
 	Ship ship;
 	/** Keeps track of whether or not the ship is firing */
 	boolean firing;
 
 	/** Bullet Entity List */
-	Bullet bullets[];
-	/** Keeps track of number of bullets on screen */
-	int bulletsOnScreen;
+	ArrayList<Bullet> bullets;
 
 	/** Asteroid Entity List */
-	Asteroid asteroids[];
-	/** Keeps track of number of asteroids on screen */
-	int asteroidsOnScreen;
+	ArrayList<Asteroid> asteroids;
 
-	private static final int screenSize[] = { 750, 750 };
+	// GRAPHICS VARIABLES
+	private final int Screen[] = { 750, 750 };
 
 	/** Allows task to be performed by PC */
 	Thread thread;
@@ -46,28 +44,35 @@ public class Game extends Applet implements Runnable, KeyListener {
 	/** used to draw on back buffer */
 	Graphics Gfx;
 
+	// GAME LOGIC VARIABLES
 	/** if true, game is running, if false, game is paused */
 	boolean gameRunning;
+
+	/** Number of lives player has before Game Over */
+	int lives;
+
+	/** Level of difficulty player is on. Gets higher as game goes on */
+	int level;
+
+	/** Variables to pass ship constructor */
+	double center[] = new double[] { Screen[X] / 2, Screen[Y] / 2 }, rot = 0,
+			accel = 0.35, velDecay = 0.85, rotVel = 0.1;
 
 	// Override functions from Applet
 	@Override
 	public void init() {
-		this.resize(screenSize[X], screenSize[Y]);
+		this.resize(Screen[X], Screen[Y]);
 
-		/** Variables to pass ship constructor */
-		double center[] = new double[] { screenSize[X] / 2, screenSize[Y] / 2 }, rot = 0, accel = 0.35, velDecay = 0.85, rotVel = 0.1;
 		ship = new Ship(center, rot, accel, velDecay, rotVel);
 		firing = false;
 
 		gameRunning = true;
+		lives = 3;
+		level = 0;
 
-		// No more than one bullet can be fired per frame and lifespan is 50.
-		// This means it is impossible for there to be more than 50 bullets on
-		// screen at one time.
-		bullets = new Bullet[51];
-		bulletsOnScreen = 0;
+		bullets = new ArrayList<Bullet>();
 
-		asteroidsOnScreen = 0;
+		asteroids = new ArrayList<Asteroid>();
 
 		addKeyListener(this);
 
@@ -84,19 +89,39 @@ public class Game extends Applet implements Runnable, KeyListener {
 		thread.start();
 	}
 
+	/** Load Next Level */
+	public void nextLevel() {
+		level++;
+		ship = new Ship(center, rot, accel, velDecay, rotVel);
+		double randPos[] = new double[2];
+		for (int i = 0; i < level; ++i) {
+			randPos[X] = (Math.random() * Screen[X]);
+			randPos[Y] = (Math.random() * Screen[Y]);
+			asteroids.add(new Asteroid(randPos));
+		}
+	}
+
 	@Override
 	public void paint(Graphics a_Gfx) {
 		// Code draws to the back buffer to prevent flashing
 		Gfx.setColor(Color.black);
-		Gfx.fillRect(0, 0, screenSize[0], screenSize[1]);
+		Gfx.fillRect(0, 0, Screen[0], Screen[1]);
 
 		// Draw Ship
 		ship.draw(Gfx);
 
 		// Draw all bullets on the screen
-		for (int i = 0; i < bulletsOnScreen; ++i) {
-			bullets[i].draw(Gfx);
+		for (int i = 0; i < bullets.size(); ++i) {
+			bullets.get(i).draw(Gfx);
 		}
+		// Draw asteroids
+		for (int i = 0; i < asteroids.size(); ++i) {
+			asteroids.get(i).draw(Gfx);
+		}
+		
+		// Display the level number in top left corner
+		Gfx.setColor(Color.cyan); 
+		Gfx.drawString("Level " + level, 20, 20);
 
 		// What is drawn on screen
 		a_Gfx.drawImage(image, 0, 0, this);
@@ -106,8 +131,9 @@ public class Game extends Applet implements Runnable, KeyListener {
 	public void update(Graphics a_Gfx) {
 		paint(a_Gfx);
 		ship.update();
-		for (int i = 0; i < bulletsOnScreen; ++i)
-			bullets[i].update();
+		for (int i = 0; i < bullets.size(); ++i) {
+			bullets.get(i).update();
+		}
 	}
 
 	@Override
@@ -115,21 +141,25 @@ public class Game extends Applet implements Runnable, KeyListener {
 		while (true) {
 			// set start time
 			startTime = System.currentTimeMillis();
+			
+			if(asteroids.size() <=0)
+				nextLevel();
+			
 			if (gameRunning) {
-				ship.move(screenSize);
-				for (int i = 0; i < bulletsOnScreen; ++i) {
-					bullets[i].move(screenSize);
-					if (bullets[i].getLife() <= 0) {
-						deleteBullet(i);
-						--i;
-					}
+				ship.move(Screen);
+				for (int i = bullets.size() - 1; i >= 0; --i) {
+					bullets.get(i).move(Screen);
+					if (bullets.get(i).getLife() <= 0)
+						bullets.remove(i);
 				}
+
+				asteroidUpdate();
+
 				// Check to see if player is trying to fire and if the ship is
 				// ready to fire. If so, then add a bullet to the array and
 				// fire.
 				if (firing && ship.readyToFire()) {
-					bullets[bulletsOnScreen] = ship.Fire();
-					++bulletsOnScreen;
+					bullets.add(ship.Fire());
 				}
 			}
 			repaint();
@@ -142,14 +172,6 @@ public class Game extends Applet implements Runnable, KeyListener {
 			} catch (InterruptedException e) {
 			}
 		}
-	}
-
-	/** Delete oldest bullet. Move rest of bullets up in array */
-	public void deleteBullet(int index) {
-		--bulletsOnScreen;
-		for (int i = 0; i < bulletsOnScreen; ++i)
-			bullets[i] = bullets[i + 1];
-		bullets[bulletsOnScreen] = null;
 	}
 
 	@Override
@@ -198,5 +220,29 @@ public class Game extends Applet implements Runnable, KeyListener {
 
 	@Override
 	public void keyTyped(KeyEvent e) {
+	}
+
+	private void asteroidUpdate() {
+		for (int i = 0; i < asteroids.size(); ++i) {
+			asteroids.get(i).move(Screen);
+			if (asteroids.get(i).collideShip(ship)) {
+				--level;
+				asteroids.clear();
+				return;
+			}
+			for (int j = 0; j < bullets.size(); ++j) {
+				if (asteroids.get(i).collideBullet(bullets.get(j))) {
+					bullets.remove(j);
+					if (asteroids.get(i).getHealth() > 1) {
+						for (int k = 0; k < asteroids.get(i).asteroidSplit; ++k) {
+							asteroids.add(asteroids.get(i).splitAsteroid());
+						}
+						asteroids.remove(i);
+						j = bullets.size();
+						--i;
+					}
+				}
+			}
+		}
 	}
 }
