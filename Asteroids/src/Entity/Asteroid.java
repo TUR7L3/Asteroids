@@ -46,8 +46,7 @@ public class Asteroid {
 		this.pos[Y] = pos[Y];
 
 		vel = new double[2];
-		vel[X] = 0;
-		vel[Y] = 0;
+		
 		
 		this.health = health;
 		
@@ -57,6 +56,8 @@ public class Asteroid {
 		double randVel = minVel + Math.random() * (maxVel - minVel);
 		/** Random Direction */
 		double randDir = 2 * Math.PI * Math.random();
+		vel[X] = randVel*Math.cos(randDir);
+		vel[Y] = randVel*Math.cos(randDir);
 	}
 
 	public void move(int Screen[]) {
